@@ -1,18 +1,27 @@
 
 // ⚠️ 请替换为你自己的 TMDB API Key
+const TMDB_API_KEY = "";
+const BASE_URL = "https://api.themoviedb.org/3";
+const IMAGE = "https://image.tmdb.org/t/p/w500";
+
+// =============================
+// ForwardWidgets - TMDB 完全开放版（播出平台最新剧集，显示当天及以前）
+// =============================
+
+// ⚠️ 请替换为你自己的 TMDB API Key
 const TMDB_API_KEY = "ae39b54fe21d657c5f535174b11f8a82";
 const BASE_URL = "https://api.themoviedb.org/3";
 const IMAGE = "https://image.tmdb.org/t/p/w500";
 
 // =============================
-// Widget Matata
+// Widget Metadata
 // =============================
 var WidgetMetadata = {
   id: "tmdb_full_open_widget",
   title: "TMDB Full Open",
-  description: "热门电影 / 热门剧集 / 高分 / 平台 / 出品公司 - 不屏蔽任何内容，显示所有国内外平台最新剧集",
-  author: "Matata",
-  version: "1.4.0",
+  description: "热门电影 / 热门剧集 / 高分 / 平台 / 出品公司 - 不屏蔽任何内容，显示当天及以前的剧集",
+  author: "ChatGPT",
+  version: "1.5.0",
   requiredVersion: "0.0.1",
 
   modules: [
@@ -54,6 +63,15 @@ var WidgetMetadata = {
 // =============================
 function buildUrl(endpoint, params) {
   let url = BASE_URL + endpoint + '?api_key=' + TMDB_API_KEY;
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  const todayStr = `${yyyy}-${mm}-${dd}`;
+
+  // 限制 air_date 不超过今天
+  params.air_date_lte = todayStr;
+
   for (let k in params) {
     if (params[k] !== undefined && params[k] !== '') {
       url += `&${k}=${encodeURIComponent(params[k])}`;
@@ -97,5 +115,6 @@ async function tmdbPopularTV(params) { const items = await fetchTMDB("/tv/popula
 async function tmdbTopRated(params) { const type = params.type || "movie"; const items = await fetchTMDB(`/${type}/top_rated`, params); return formatItems(items, type); }
 async function tmdbDiscoverByNetwork(params) { const items = await fetchTMDB("/discover/tv", params); return formatItems(items, "tv"); }
 async function tmdbDiscoverByCompany(params) { const items = await fetchTMDB("/discover/movie", params); return formatItems(items, "movie"); }
+
 
 
