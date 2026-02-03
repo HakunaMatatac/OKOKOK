@@ -8,11 +8,11 @@ const IMAGE = "https://image.tmdb.org/t/p/w500";
 // Widget Metadata
 // =============================
 var WidgetMetadata = {
-  id: "tmdb_full_widget",
-  title: "TMDB Full",
-  description: "热门电影 / 热门剧集 / 高分 / 播出平台 / 出品公司",
+  id: "tmdb_full_open_widget",
+  title: "TMDB Full Open",
+  description: "热门电影 / 热门剧集 / 高分 / 播出平台 / 出品公司 - 不屏蔽任何内容",
   author: "ChatGPT",
-  version: "1.2.0",
+  version: "1.3.0",
   requiredVersion: "0.0.1",
 
   modules: [
@@ -46,21 +46,19 @@ async function fetchTMDB(endpoint, params = {}) {
 
   // Forward 返回的 res.data 已经是对象，无需 JSON.parse
   const json = res.data;
-
-  // TMDB 可能返回 { results: [...] } 或者直接 array
   return json.results || json || [];
 }
 
 // =============================
-// 数据格式化
+// 数据格式化 - 不再过滤
 // =============================
 function formatItems(items, mediaType) {
-  return items.filter(i => i.poster_path && i.vote_count > 100 && i.vote_average >= 6).map(i => ({
+  return items.map(i => ({
     id: i.id.toString(),
     type: "tmdb",
     mediaType: mediaType || (i.title ? "movie" : "tv"),
     title: i.title || i.name,
-    posterPath: IMAGE + i.poster_path,
+    posterPath: i.poster_path ? IMAGE + i.poster_path : undefined,
     backdropPath: i.backdrop_path ? IMAGE + i.backdrop_path : undefined,
     releaseDate: i.release_date || i.first_air_date,
     rating: i.vote_average,
@@ -76,3 +74,4 @@ async function tmdbPopularTV(params) { const items = await fetchTMDB("/tv/popula
 async function tmdbTopRated(params) { const type = params.type || "movie"; const items = await fetchTMDB(`/${type}/top_rated`, params); return formatItems(items, type); }
 async function tmdbDiscoverByNetwork(params) { const items = await fetchTMDB("/discover/tv", params); return formatItems(items, "tv"); }
 async function tmdbDiscoverByCompany(params) { const items = await fetchTMDB("/discover/movie", params); return formatItems(items, "movie"); }
+
