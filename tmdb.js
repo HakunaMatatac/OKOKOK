@@ -3,18 +3,18 @@ const BASE_URL = "https://api.themoviedb.org/3";
 const IMAGE = "https://image.tmdb.org/t/p/w500";
 
 // =============================
-// Widget Metadata
+// Widget curator
 // =============================
 var WidgetMetadata = {
   id: "curator-tmdb-widget",
   title: "TMDB资源",
   description: "纯自用",
   author: "curator",
-  version: "1.8.0",
+  version: "1.9.0",
   requiredVersion: "0.0.1",
 
   modules: [
-    // 1️⃣ 最新剧集
+    // 1️⃣ 最新剧集（全球当天及以前）
     { 
       title: "TMDB 最新剧集", 
       functionName: "tmdbDiscoverByNetwork", 
@@ -86,7 +86,7 @@ var WidgetMetadata = {
 
     // 5️⃣ 出品公司
     { 
-      title: "🎬 TMDB 出品公司", 
+      title: "TMDB 出品公司", 
       functionName: "tmdbDiscoverByCompany", 
       cacheDuration: 21600, 
       params: [ 
@@ -129,21 +129,10 @@ var WidgetMetadata = {
 };
 
 // =============================
-// 拼接 URL，兼容 Forward
+// 拼接 URL
 // =============================
 function buildUrl(endpoint, params) {
   let url = BASE_URL + endpoint + '?api_key=' + TMDB_API_KEY;
-  const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 1).padStart(2, '0');
-  const dd = String(today.getDate()).padStart(2, '0');
-  const todayStr = `${yyyy}-${mm}-${dd}`;
-
-  // 强制限制首播日期不晚于今天（适用于最新剧集/全部平台）
-  if (endpoint.includes("/discover/tv")) {
-    params['first_air_date.lte'] = todayStr;
-  }
-
   for (let k in params) {
     if (params[k] !== undefined && params[k] !== '') {
       url += `&${k}=${encodeURIComponent(params[k])}`;
@@ -163,7 +152,7 @@ async function fetchTMDB(endpoint, params = {}) {
 }
 
 // =============================
-// 数据格式化 - 过滤规则
+// 格式化 + 过滤
 // =============================
 function formatItems(items, mediaType) {
   return items
@@ -184,8 +173,53 @@ function formatItems(items, mediaType) {
 // =============================
 // 模块实现函数
 // =============================
-async function tmdbPopularMovies(params) { const items = await fetchTMDB("/movie/popular", params); return formatItems(items, "movie"); }
-async function tmdbPopularTV(params) { const items = await fetchTMDB("/tv/popular", params); return formatItems(items, "tv"); }
-async function tmdbTopRated(params) { const type = params.type || "movie"; const items = await fetchTMDB(`/${type}/top_rated`, params); return formatItems(items, type); }
-async function tmdbDiscoverByNetwork(params) { const items = await fetchTMDB("/discover/tv", params); return formatItems(items, "tv"); }
-async function tmdbDiscoverByCompany(params) { const items = await fetchTMDB("/discover/movie", params); return formatItems(items, "movie"); }
+
+// 热门电影
+async function tmdbPopularMovies(params) { 
+  const items = await fetchTMDB("/movie/popular", params); 
+  return formatItems(items, "movie"); 
+}
+
+// 热门剧集
+async function tmdbPopularTV(params) { 
+  const items = await fetchTMDB("/tv/popular", params); 
+  return formatItems(items, "tv"); 
+}
+
+// 高分内容
+async function tmdbTopRated(params) { 
+  const type = params.type || "movie"; 
+  const items = await fetchTMDB(`/${type}/top_rated`, params); 
+  return formatItems(items, type); 
+}
+
+// 最新剧集（分页获取当天及以前全球）
+async function tmdbDiscoverByNetwork(params) {
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  const todayStr = `${yyyy}-${mm}-${dd}`;
+
+  params['first_air_date.lte'] = todayStr;
+
+  let page = params.page || 1;
+  let allItems = [];
+  const MAX_PAGES = 5; // 可调
+
+  while (page <= MAX_PAGES) {
+    params.page = page;
+    const items = await fetchTMDB("/discover/tv", params);
+    if (!items || items.length === 0) break;
+    allItems = allItems.concat(items);
+    page++;
+  }
+
+  return formatItems(allItems, "tv");
+}
+
+// 出品公司
+async function tmdbDiscoverByCompany(params) { 
+  const items = await fetchTMDB("/discover/movie", params); 
+  return formatItems(items, "movie"); 
+}
