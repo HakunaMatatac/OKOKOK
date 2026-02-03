@@ -10,7 +10,7 @@ var WidgetMetadata = {
   title: "TMDB资源模块",
   description: "只保留自己用到的",
   author: "curator",
-  version: "0.0.1",
+  version: "0.0.2",
   requiredVersion: "0.0.1",
 
   modules: [
@@ -82,7 +82,7 @@ async function fetchTMDB(endpoint, params = {}) {
 }
 
 // =============================
-// 数据格式化 - 只保留有封面
+// 数据格式化 - 只保留有封面 + TV 显示中文名
 // =============================
 function formatItems(items, mediaType) {
   return items
@@ -91,7 +91,8 @@ function formatItems(items, mediaType) {
       id: i.id.toString(),
       type: "tmdb",
       mediaType: mediaType || (i.title ? "movie" : "tv"),
-      title: i.title || i.name,
+      // 修改这里：TV 使用中文名称，电影使用中文名称
+      title: mediaType === "tv" ? (i.name || i.original_name) : (i.title || i.original_title),
       posterPath: IMAGE + i.poster_path,
       backdropPath: i.backdrop_path ? IMAGE + i.backdrop_path : undefined,
       releaseDate: i.release_date || i.first_air_date,
