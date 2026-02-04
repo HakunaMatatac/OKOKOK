@@ -10,8 +10,8 @@ var WidgetMetadata = {
   id: "tmdb_full_open_widget",
   title: "TMDB资源模块",
   description: "",
-  author: “Bai”,
-  version: “0.0.6”,
+  author: "Bai",
+version: "0.0.7",
   requiredVersion: "0.0.1",
 
   modules: [
