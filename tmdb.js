@@ -3,29 +3,34 @@ const BASE_URL = "https://api.themoviedb.org/3";
 const IMAGE = "https://image.tmdb.org/t/p/";
 
 // =============================
+
 var WidgetMetadata = {
   id: "tmdb_full_open_widget",
   title: "TMDB资源模块",
   description: "趋势、热榜、平台一站式的资源模块",
   author: "白馆长",
-  version: "0.0.4",
+  version: "0.0.3",
   requiredVersion: "0.0.1",
 
   modules: [
     { 
       title: "TMDB 今日趋势",
       functionName: "tmdbTrendingToday",
-      cacheDuration: 3600,
+      cacheDuration: 900,
       params: [
-        { 
-          name: "media_type", 
-          title: "显示类型", 
-          type: "enumeration", 
-          value: "all",
+        { name: "media_type", title: "类型", type: "enumeration", value: "all",
           enumOptions: [
-            { title: "全部趋势", value: "all" },
+            { title: "全部", value: "all" },
             { title: "电影", value: "movie" },
             { title: "剧集", value: "tv" }
+          ]
+        },
+        { name: "poster_quality", title: "海报大小", type: "enumeration", value: "auto",
+          enumOptions: [
+            { title: "自动", value: "auto" },
+            { title: "小 w500", value: "w500" },
+            { title: "中 w780", value: "w780" },
+            { title: "原图 original", value: "original" }
           ]
         },
         { name: "language", title: "语言", type: "language", value: "zh-CN" },
@@ -35,30 +40,30 @@ var WidgetMetadata = {
     { 
       title: "TMDB 本周趋势",
       functionName: "tmdbTrendingWeek",
-      cacheDuration: 3600,
+      cacheDuration: 900,
       params: [
-        { 
-          name: "media_type", 
-          title: "显示类型", 
-          type: "enumeration", 
-          value: "all",
+        { name: "media_type", title: "类型", type: "enumeration", value: "all",
           enumOptions: [
-            { title: "全部趋势", value: "all" },
+            { title: "全部", value: "all" },
             { title: "电影", value: "movie" },
             { title: "剧集", value: "tv" }
+          ]
+        },
+        { name: "poster_quality", title: "海报大小", type: "enumeration", value: "auto",
+          enumOptions: [
+            { title: "自动", value: "auto" },
+            { title: "小 w500", value: "w500" },
+            { title: "中 w780", value: "w780" },
+            { title: "原图 original", value: "original" }
           ]
         },
         { name: "language", title: "语言", type: "language", value: "zh-CN" },
         { name: "page", title: "页码", type: "page" }
       ]
     },
-    // 热门电影
     { title: "TMDB 热门电影", functionName: "tmdbPopularMovies", cacheDuration: 1800, params: [ { name: "language", title: "语言", type: "language", value: "zh-CN" }, { name: "page", title: "页码", type: "page" } ] },
-    // 热门剧集
     { title: "TMDB 热门剧集", functionName: "tmdbPopularTV", cacheDuration: 1800, params: [ { name: "language", title: "语言", type: "language", value: "zh-CN" }, { name: "page", title: "页码", type: "page" } ] },
-    // 高分内容
     { title: "TMDB 高分内容", functionName: "tmdbTopRated", cacheDuration: 21600, params: [ { name: "type", title: "类型", type: "enumeration", enumOptions: [ { title: "电影", value: "movie" }, { title: "剧集", value: "tv" } ], value: "movie" }, { name: "language", title: "语言", type: "language", value: "zh-CN" }, { name: "page", title: "页码", type: "page" } ] },
-    // 播出平台
     { 
       title: "TMDB 播出平台", 
       functionName: "tmdbDiscoverByNetwork", 
@@ -90,7 +95,6 @@ var WidgetMetadata = {
         { name: "page", title: "页码", type: "page" }
       ] 
     },
-    // 出品公司
     { 
       title: "TMDB 出品公司", 
       functionName: "tmdbDiscoverByCompany", 
@@ -180,30 +184,27 @@ function formatItems(items, mediaType) {
         type: "tmdb",
         mediaType: mediaType || i.media_type || (i.title ? "movie" : "tv"),
         title: title,
-        posterPath: IMAGE + 'w500' + i.poster_path, // 默认先用中等图
-        backdropPath: i.backdrop_path ? IMAGE + 'w500' + i.backdrop_path : undefined,
+        posterPath: IMAGE + "w500" + i.poster_path,  // 默认小图
+        backdropPath: i.backdrop_path ? IMAGE + "w500" + i.backdrop_path : undefined,
         releaseDate: i.release_date || i.first_air_date,
         rating: i.vote_average,
-        description: i.overview,
-        popularity: i.popularity || 0
+        description: i.overview
       };
     });
 }
 
 // =============================
-// ⭐ 趋势专用高清无字海报（自动适配设备）
-async function getTrendingBestPoster(id, mediaType) {
+// ⭐ 新增：趋势专用高清无字海报（支持设备自动+手动选择）
+// =============================
+async function getTrendingBestPoster(id, mediaType, poster_quality = 'auto') {
   let quality = 'w500'; // 默认小图
 
-  // 自动判断设备
-  if (typeof Device !== 'undefined') {
-    if (Device.isTV) {
-      quality = 'original'; // Apple TV
-    } else if (Device.isMac) {
-      quality = 'w780'; // Mac
-    } else if (Device.isPhone) {
-      quality = 'w500'; // iPhone
-    }
+  if (poster_quality === 'auto' && typeof Device !== 'undefined') {
+    if (Device.isTV) quality = 'original';
+    else if (Device.isMac) quality = 'w780';
+    else if (Device.isPhone) quality = 'w500';
+  } else if (poster_quality !== 'auto') {
+    quality = poster_quality;
   }
 
   try {
@@ -216,22 +217,10 @@ async function getTrendingBestPoster(id, mediaType) {
       .sort((a, b) => b.height - a.height)[0];
 
     if (!poster) return null;
-
-    if (quality === 'original') {
-      return `https://image.tmdb.org/t/p/original${poster.file_path}`;
-    } else {
-      // w500/w780 按比例裁切原图
-      return `https://image.tmdb.org/t/p/${quality}${poster.file_path}`;
-    }
+    return `${IMAGE}${quality}${poster.file_path}`;
   } catch {
     return null;
   }
-}
-
-// =============================
-// 趋势排序
-function sortTrendingItems(items) {
-  return items.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
 }
 
 // =============================
@@ -260,9 +249,16 @@ async function tmdbDiscoverByNetwork(params) {
 
 async function tmdbDiscoverByCompany(params) { 
   const items = await fetchTMDB("/discover/movie", params);
+
   const companyMap = {
-    "420": "漫威", "3": "皮克斯", "2": "迪士尼", "174": "华纳兄弟",
-    "4": "派拉蒙", "33": "环球影业", "5": "哥伦比亚", "41077": "A24",
+    "420": "漫威",
+    "3": "皮克斯",
+    "2": "迪士尼",
+    "174": "华纳兄弟",
+    "4": "派拉蒙",
+    "33": "环球影业",
+    "5": "哥伦比亚",
+    "41077": "A24",
     "34": "索尼影业"
   };
 
@@ -273,8 +269,8 @@ async function tmdbDiscoverByCompany(params) {
       type: "tmdb",
       mediaType: "movie",
       title: i.title || i.original_title || i.name || i.original_name,
-      posterPath: IMAGE + 'w500' + i.poster_path,
-      backdropPath: i.backdrop_path ? IMAGE + 'w500' + i.backdrop_path : undefined,
+      posterPath: IMAGE + "w500" + i.poster_path,
+      backdropPath: i.backdrop_path ? IMAGE + "w500" + i.backdrop_path : undefined,
       releaseDate: i.release_date || i.first_air_date,
       rating: i.vote_average,
       description: i.overview,
@@ -282,19 +278,16 @@ async function tmdbDiscoverByCompany(params) {
     }));
 }
 
-// =============================
-// 今日趋势（电影+剧集 + 热度排序 + 高清无字海报）
+// ⭐ 今日趋势（已升级高清无字海报，支持海报大小选择）
 async function tmdbTrendingToday(params) {
-  const movieItems = await fetchTMDB("/trending/movie/day", params);
-  const tvItems = await fetchTMDB("/trending/tv/day", params);
-  let combined = [...movieItems, ...tvItems];
+  const type = params.media_type || "all";
+  const items = await fetchTMDB(`/trending/${type}/day`, params);
 
-  let formatted = formatItems(combined);
-  formatted = sortTrendingItems(formatted);
+  const formatted = formatItems(items);
 
   await Promise.all(
     formatted.map(async item => {
-      const poster = await getTrendingBestPoster(item.id, item.mediaType);
+      const poster = await getTrendingBestPoster(item.id, item.mediaType, params.poster_quality);
       if (poster) item.posterPath = poster;
     })
   );
@@ -302,18 +295,16 @@ async function tmdbTrendingToday(params) {
   return formatted;
 }
 
-// 本周趋势（电影+剧集 + 热度排序 + 高清无字海报）
+// ⭐ 本周趋势（已升级高清无字海报，支持海报大小选择）
 async function tmdbTrendingWeek(params) {
-  const movieItems = await fetchTMDB("/trending/movie/week", params);
-  const tvItems = await fetchTMDB("/trending/tv/week", params);
-  let combined = [...movieItems, ...tvItems];
+  const type = params.media_type || "all";
+  const items = await fetchTMDB(`/trending/${type}/week`, params);
 
-  let formatted = formatItems(combined);
-  formatted = sortTrendingItems(formatted);
+  const formatted = formatItems(items);
 
   await Promise.all(
     formatted.map(async item => {
-      const poster = await getTrendingBestPoster(item.id, item.mediaType);
+      const poster = await getTrendingBestPoster(item.id, item.mediaType, params.poster_quality);
       if (poster) item.posterPath = poster;
     })
   );
