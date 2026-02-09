@@ -1,6 +1,6 @@
 const TMDB_API_KEY = "ae39b54fe21d657c5f535174b11f8a82";
 const BASE_URL = "https://api.themoviedb.org/3";
-const IMAGE = "https://image.tmdb.org/t/p/";
+const IMAGE = "https://image.tmdb.org/t/p/w500";
 
 // =============================
 var WidgetMetadata = {
@@ -8,7 +8,7 @@ var WidgetMetadata = {
   title: "TMDB资源模块",
   description: "趋势、热榜、平台一站式的资源模块",
   author: "白馆长",
-  version: "0.0.5",
+  version: "0.0.4",
   requiredVersion: "0.0.1",
 
   modules: [
@@ -141,7 +141,7 @@ async function fetchTMDB(endpoint, params = {}) {
 }
 
 // =============================
-// 数据格式化函数
+// 数据格式化函数（保留全局原逻辑）
 // =============================
 function formatItems(items, mediaType) {
   return items
@@ -165,8 +165,7 @@ function formatItems(items, mediaType) {
         type: "tmdb",
         mediaType: mediaType || i.media_type || (i.title ? "movie" : "tv"),
         title: title,
-        // ✅ 直接用接口自带大图
-        posterPath: i.backdrop_path ? IMAGE + "w1280" + i.backdrop_path : IMAGE + "w500" + i.poster_path,
+        posterPath: IMAGE + "w500" + i.poster_path,
         backdropPath: i.backdrop_path ? IMAGE + "w1280" + i.backdrop_path : undefined,
         releaseDate: i.release_date || i.first_air_date,
         rating: i.vote_average,
@@ -231,16 +230,52 @@ async function tmdbDiscoverByCompany(params) {
 }
 
 // =============================
-// 今日/本周趋势模块（直接用接口自带海报）
+// 今日/本周趋势模块（方案 A：直接用接口自带大图）
 // =============================
 async function tmdbTrendingToday(params) {
   const type = params.media_type || "all";
   const items = await fetchTMDB(`/trending/${type}/day`, params);
-  return formatItems(items);
+
+  return items
+    .filter(i => i.poster_path && i.poster_path.trim() !== "" && i.media_type !== "person")
+    .map(i => {
+      let title = i.title || i.original_title || i.name || i.original_name || "未知";
+      const mediaType = i.media_type || (i.title ? "movie" : "tv");
+
+      return {
+        id: i.id.toString(),
+        type: "tmdb",
+        mediaType,
+        title,
+        posterPath: i.backdrop_path ? IMAGE + "w1280" + i.backdrop_path : IMAGE + "w500" + i.poster_path,
+        backdropPath: i.backdrop_path ? IMAGE + "w1280" + i.backdrop_path : undefined,
+        releaseDate: i.release_date || i.first_air_date,
+        rating: i.vote_average,
+        description: i.overview
+      };
+    });
 }
 
 async function tmdbTrendingWeek(params) {
   const type = params.media_type || "all";
   const items = await fetchTMDB(`/trending/${type}/week`, params);
-  return formatItems(items);
+
+  return items
+    .filter(i => i.poster_path && i.poster_path.trim() !== "" && i.media_type !== "person")
+    .map(i => {
+      let title = i.title || i.original_title || i.name || i.original_name || "未知";
+      const mediaType = i.media_type || (i.title ? "movie" : "tv");
+
+      return {
+        id: i.id.toString(),
+        type: "tmdb",
+        mediaType,
+        title,
+        posterPath: i.backdrop_path ? IMAGE + "w1280" + i.backdrop_path : IMAGE + "w500" + i.poster_path,
+        backdropPath: i.backdrop_path ? IMAGE + "w1280" + i.backdrop_path : undefined,
+        releaseDate: i.release_date || i.first_air_date,
+        rating: i.vote_average,
+        description: i.overview
+      };
+    });
 }
