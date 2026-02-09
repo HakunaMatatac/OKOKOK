@@ -3,13 +3,12 @@ const BASE_URL = "https://api.themoviedb.org/3";
 const IMAGE = "https://image.tmdb.org/t/p/";
 
 // =============================
-
 var WidgetMetadata = {
   id: "tmdb_full_open_widget",
   title: "TMDB资源模块",
   description: "趋势、热榜、平台一站式的资源模块",
   author: "白馆长",
-  version: "0.0.3",
+  version: "0.0.5",
   requiredVersion: "0.0.1",
 
   modules: [
@@ -23,14 +22,6 @@ var WidgetMetadata = {
             { title: "全部", value: "all" },
             { title: "电影", value: "movie" },
             { title: "剧集", value: "tv" }
-          ]
-        },
-        { name: "poster_quality", title: "海报大小", type: "enumeration", value: "auto",
-          enumOptions: [
-            { title: "自动", value: "auto" },
-            { title: "小 w500", value: "w500" },
-            { title: "中 w780", value: "w780" },
-            { title: "原图 original", value: "original" }
           ]
         },
         { name: "language", title: "语言", type: "language", value: "zh-CN" },
@@ -47,14 +38,6 @@ var WidgetMetadata = {
             { title: "全部", value: "all" },
             { title: "电影", value: "movie" },
             { title: "剧集", value: "tv" }
-          ]
-        },
-        { name: "poster_quality", title: "海报大小", type: "enumeration", value: "auto",
-          enumOptions: [
-            { title: "自动", value: "auto" },
-            { title: "小 w500", value: "w500" },
-            { title: "中 w780", value: "w780" },
-            { title: "原图 original", value: "original" }
           ]
         },
         { name: "language", title: "语言", type: "language", value: "zh-CN" },
@@ -165,7 +148,6 @@ function formatItems(items, mediaType) {
     .filter(i => i.poster_path && i.poster_path.trim() !== "" && i.media_type !== "person")
     .map(i => {
       let title = '';
-
       switch (i.media_type) {
         case 'movie':
           title = i.title || i.original_title;
@@ -176,7 +158,6 @@ function formatItems(items, mediaType) {
         default:
           title = i.title || i.name || i.original_title || i.original_name;
       }
-
       title = title || "未知";
 
       return {
@@ -184,43 +165,14 @@ function formatItems(items, mediaType) {
         type: "tmdb",
         mediaType: mediaType || i.media_type || (i.title ? "movie" : "tv"),
         title: title,
-        posterPath: IMAGE + "w500" + i.poster_path,  // 默认小图
-        backdropPath: i.backdrop_path ? IMAGE + "w500" + i.backdrop_path : undefined,
+        // ✅ 直接用接口自带大图
+        posterPath: i.backdrop_path ? IMAGE + "w1280" + i.backdrop_path : IMAGE + "w500" + i.poster_path,
+        backdropPath: i.backdrop_path ? IMAGE + "w1280" + i.backdrop_path : undefined,
         releaseDate: i.release_date || i.first_air_date,
         rating: i.vote_average,
         description: i.overview
       };
     });
-}
-
-// =============================
-// ⭐ 新增：趋势专用高清无字海报（支持设备自动+手动选择）
-// =============================
-async function getTrendingBestPoster(id, mediaType, poster_quality = 'auto') {
-  let quality = 'w500'; // 默认小图
-
-  if (poster_quality === 'auto' && typeof Device !== 'undefined') {
-    if (Device.isTV) quality = 'original';
-    else if (Device.isMac) quality = 'w780';
-    else if (Device.isPhone) quality = 'w500';
-  } else if (poster_quality !== 'auto') {
-    quality = poster_quality;
-  }
-
-  try {
-    const res = await Widget.http.get(`${BASE_URL}/${mediaType}/${id}/images?api_key=${TMDB_API_KEY}`);
-    const data = typeof res.data === "string" ? JSON.parse(res.data) : res.data;
-    if (!data || !data.posters) return null;
-
-    const poster = data.posters
-      .filter(p => p.iso_639_1 === null)
-      .sort((a, b) => b.height - a.height)[0];
-
-    if (!poster) return null;
-    return `${IMAGE}${quality}${poster.file_path}`;
-  } catch {
-    return null;
-  }
 }
 
 // =============================
@@ -270,7 +222,7 @@ async function tmdbDiscoverByCompany(params) {
       mediaType: "movie",
       title: i.title || i.original_title || i.name || i.original_name,
       posterPath: IMAGE + "w500" + i.poster_path,
-      backdropPath: i.backdrop_path ? IMAGE + "w500" + i.backdrop_path : undefined,
+      backdropPath: i.backdrop_path ? IMAGE + "w1280" + i.backdrop_path : undefined,
       releaseDate: i.release_date || i.first_air_date,
       rating: i.vote_average,
       description: i.overview,
@@ -278,36 +230,17 @@ async function tmdbDiscoverByCompany(params) {
     }));
 }
 
-// ⭐ 今日趋势（已升级高清无字海报，支持海报大小选择）
+// =============================
+// 今日/本周趋势模块（直接用接口自带海报）
+// =============================
 async function tmdbTrendingToday(params) {
   const type = params.media_type || "all";
   const items = await fetchTMDB(`/trending/${type}/day`, params);
-
-  const formatted = formatItems(items);
-
-  await Promise.all(
-    formatted.map(async item => {
-      const poster = await getTrendingBestPoster(item.id, item.mediaType, params.poster_quality);
-      if (poster) item.posterPath = poster;
-    })
-  );
-
-  return formatted;
+  return formatItems(items);
 }
 
-// ⭐ 本周趋势（已升级高清无字海报，支持海报大小选择）
 async function tmdbTrendingWeek(params) {
   const type = params.media_type || "all";
   const items = await fetchTMDB(`/trending/${type}/week`, params);
-
-  const formatted = formatItems(items);
-
-  await Promise.all(
-    formatted.map(async item => {
-      const poster = await getTrendingBestPoster(item.id, item.mediaType, params.poster_quality);
-      if (poster) item.posterPath = poster;
-    })
-  );
-
-  return formatted;
+  return formatItems(items);
 }
