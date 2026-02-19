@@ -8,7 +8,7 @@ var WidgetMetadata = {
   title: "TMDB资源模块",
   description: "趋势、热榜、平台一站式的资源模块",
   author: "白馆长",
-  version: "0.0.5",
+  version: "0.0.8",
   requiredVersion: "0.0.1",
 
   modules: [
@@ -141,30 +141,58 @@ async function fetchTMDB(endpoint, params = {}) {
 }
 
 // =============================
-// 数据格式化函数（非趋势模块：海报带剧名，减少请求）
+// 类型映射缓存
 // =============================
-function formatItems(items, mediaType) {
+let genreMapCache = { movie: {}, tv: {} };
+async function fetchGenreMap(type) {
+  if (Object.keys(genreMapCache[type]).length > 0) return genreMapCache[type];
+  const res = await fetchTMDB(`/genre/${type}/list`, { language: "zh-CN" });
+  if (res && res.genres) {
+    res.genres.forEach(g => { genreMapCache[type][g.id] = g.name; });
+  }
+  return genreMapCache[type];
+}
+
+// =============================
+// 年份旁显示类型
+// =============================
+async function appendGenresToYear(item, mediaType) {
+  const genreMap = await fetchGenreMap(mediaType);
+  let genres = (item.genre_ids || []).map(id => genreMap[id]).filter(Boolean);
+  let year = (item.release_date || item.first_air_date || '').slice(0, 4) || "未知";
+  if (genres.length) year += ' ' + genres.join('·');  // 中文间点分隔
+  return year;
+}
+
+// =============================
+// 数据格式化函数（非趋势模块）
+async function formatItems(items, mediaType) {
+  const typeKey = mediaType || "movie";
+  const genreMap = await fetchGenreMap(typeKey);
+
   return items
     .filter(i => i.poster_path && i.poster_path.trim() !== "" && i.media_type !== "person")
     .map(i => {
       let title = '';
+      let keyType = mediaType || i.media_type || (i.title ? "movie" : "tv");
       switch (i.media_type) {
-        case 'movie':
-          title = i.title || i.original_title;
-          break;
-        case 'tv':
-          title = i.name || i.original_name;
-          break;
-        default:
-          title = i.title || i.name || i.original_title || i.original_name;
+        case 'movie': title = i.title || i.original_title; break;
+        case 'tv': title = i.name || i.original_name; break;
+        default: title = i.title || i.name || i.original_title || i.original_name;
       }
       title = title || "未知";
+
+      // 年份旁加类型
+      let year = (i.release_date || i.first_air_date || '').slice(0,4) || "未知";
+      const genres = (i.genre_ids || []).map(id => genreMap[id]).filter(Boolean);
+      if (genres.length) year += ' ' + genres.join('·');
 
       return {
         id: i.id.toString(),
         type: "tmdb",
-        mediaType: mediaType || i.media_type || (i.title ? "movie" : "tv"),
+        mediaType: keyType,
         title,
+        year,
         posterPath: IMAGE + "w500" + i.poster_path,
         backdropPath: i.backdrop_path ? IMAGE + "w1280" + i.backdrop_path : undefined,
         releaseDate: i.release_date || i.first_air_date,
@@ -179,103 +207,84 @@ function formatItems(items, mediaType) {
 // =============================
 async function tmdbPopularMovies(params) { 
   const items = await fetchTMDB("/movie/popular", params); 
-  return formatItems(items, "movie"); 
+  return await formatItems(items, "movie"); 
 }
 
 async function tmdbPopularTV(params) { 
   const items = await fetchTMDB("/tv/popular", params); 
-  return formatItems(items, "tv"); 
+  return await formatItems(items, "tv"); 
 }
 
 async function tmdbTopRated(params) { 
   const type = params.type || "movie"; 
   const items = await fetchTMDB(`/${type}/top_rated`, params); 
-  return formatItems(items, type); 
+  return await formatItems(items, type); 
 }
 
 async function tmdbDiscoverByNetwork(params) { 
   const items = await fetchTMDB("/discover/tv", params); 
-  return formatItems(items, "tv"); 
+  return await formatItems(items, "tv"); 
 }
 
 async function tmdbDiscoverByCompany(params) { 
   const items = await fetchTMDB("/discover/movie", params);
-
   const companyMap = {
-    "420": "漫威",
-    "3": "皮克斯",
-    "2": "迪士尼",
-    "174": "华纳兄弟",
-    "4": "派拉蒙",
-    "33": "环球影业",
-    "5": "哥伦比亚",
-    "41077": "A24",
-    "34": "索尼影业"
+    "420": "漫威","3": "皮克斯","2": "迪士尼","174": "华纳兄弟",
+    "4": "派拉蒙","33": "环球影业","5": "哥伦比亚","41077": "A24","34": "索尼影业"
   };
-
-  return items
-    .filter(i => i.poster_path && i.poster_path.trim() !== "")
-    .map(i => ({
-      id: i.id.toString(),
-      type: "tmdb",
-      mediaType: "movie",
-      title: i.title || i.original_title || i.name || i.original_name,
-      posterPath: IMAGE + "w500" + i.poster_path,
-      backdropPath: i.backdrop_path ? IMAGE + "w1280" + i.backdrop_path : undefined,
-      releaseDate: i.release_date || i.first_air_date,
-      rating: i.vote_average,
-      description: i.overview,
-      company: companyMap[params.with_companies] || params.with_companies || "未知公司"
-    }));
+  const formatted = await formatItems(items, "movie");
+  return formatted.map(item => ({ ...item, company: companyMap[params.with_companies] || params.with_companies || "未知公司" }));
 }
 
 // =============================
-// 今日/本周趋势模块（方案 A：直接用大图）
+// 今日/本周趋势模块
 // =============================
 async function tmdbTrendingToday(params) {
   const type = params.media_type || "all";
   const items = await fetchTMDB(`/trending/${type}/day`, params);
-
-  return items
+  return Promise.all(items
     .filter(i => i.poster_path && i.poster_path.trim() !== "" && i.media_type !== "person")
-    .map(i => {
-      let title = i.title || i.original_title || i.name || i.original_name || "未知";
+    .map(async i => {
       const mediaType = i.media_type || (i.title ? "movie" : "tv");
-
+      const yearWithGenres = await appendGenresToYear(i, mediaType);
+      const title = i.title || i.original_title || i.name || i.original_name || "未知";
       return {
         id: i.id.toString(),
         type: "tmdb",
         mediaType,
         title,
+        year: yearWithGenres,
         posterPath: i.backdrop_path ? IMAGE + "w1280" + i.backdrop_path : IMAGE + "w500" + i.poster_path,
         backdropPath: i.backdrop_path ? IMAGE + "w1280" + i.backdrop_path : undefined,
         releaseDate: i.release_date || i.first_air_date,
         rating: i.vote_average,
         description: i.overview
       };
-    });
+    })
+  );
 }
 
 async function tmdbTrendingWeek(params) {
   const type = params.media_type || "all";
   const items = await fetchTMDB(`/trending/${type}/week`, params);
-
-  return items
+  return Promise.all(items
     .filter(i => i.poster_path && i.poster_path.trim() !== "" && i.media_type !== "person")
-    .map(i => {
-      let title = i.title || i.original_title || i.name || i.original_name || "未知";
+    .map(async i => {
       const mediaType = i.media_type || (i.title ? "movie" : "tv");
-
+      const yearWithGenres = await appendGenresToYear(i, mediaType);
+      const title = i.title || i.original_title || i.name || i.original_name || "未知";
       return {
         id: i.id.toString(),
         type: "tmdb",
         mediaType,
         title,
+        year: yearWithGenres,
         posterPath: i.backdrop_path ? IMAGE + "w1280" + i.backdrop_path : IMAGE + "w500" + i.poster_path,
         backdropPath: i.backdrop_path ? IMAGE + "w1280" + i.backdrop_path : undefined,
         releaseDate: i.release_date || i.first_air_date,
         rating: i.vote_average,
         description: i.overview
       };
-    });
+    })
+  );
 }
