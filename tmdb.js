@@ -14,7 +14,7 @@ var WidgetMetadata = {
     { 
       title: "TMDB 今日趋势",
       functionName: "tmdbTrendingToday",
-      cacheDuration: 60,
+      cacheDuration: 900,
       params: [
         { name: "media_type", title: "类型", type: "enumeration", value: "all",
           enumOptions: [
@@ -30,7 +30,7 @@ var WidgetMetadata = {
     { 
       title: "TMDB 本周趋势",
       functionName: "tmdbTrendingWeek",
-      cacheDuration: 60,
+      cacheDuration: 900,
       params: [
         { name: "media_type", title: "类型", type: "enumeration", value: "all",
           enumOptions: [
@@ -43,13 +43,13 @@ var WidgetMetadata = {
         { name: "page", title: "页码", type: "page" }
       ]
     },
-    { title: "TMDB 热门电影", functionName: "tmdbPopularMovies", cacheDuration: 60, params: [ { name: "language", title: "语言", type: "language", value: "zh-CN" }, { name: "page", title: "页码", type: "page" } ] },
-    { title: "TMDB 热门剧集", functionName: "tmdbPopularTV", cacheDuration: 60, params: [ { name: "language", title: "语言", type: "language", value: "zh-CN" }, { name: "page", title: "页码", type: "page" } ] },
-    { title: "TMDB 高分内容", functionName: "tmdbTopRated", cacheDuration: 60, params: [ { name: "type", title: "类型", type: "enumeration", enumOptions: [ { title: "电影", value: "movie" }, { title: "剧集", value: "tv" } ], value: "movie" }, { name: "language", title: "语言", type: "language", value: "zh-CN" }, { name: "page", title: "页码", type: "page" } ] },
+    { title: "TMDB 热门电影", functionName: "tmdbPopularMovies", cacheDuration: 1800, params: [ { name: "language", title: "语言", type: "language", value: "zh-CN" }, { name: "page", title: "页码", type: "page" } ] },
+    { title: "TMDB 热门剧集", functionName: "tmdbPopularTV", cacheDuration: 1800, params: [ { name: "language", title: "语言", type: "language", value: "zh-CN" }, { name: "page", title: "页码", type: "page" } ] },
+    { title: "TMDB 高分内容", functionName: "tmdbTopRated", cacheDuration: 21600, params: [ { name: "type", title: "类型", type: "enumeration", enumOptions: [ { title: "电影", value: "movie" }, { title: "剧集", value: "tv" } ], value: "movie" }, { name: "language", title: "语言", type: "language", value: "zh-CN" }, { name: "page", title: "页码", type: "page" } ] },
     { 
       title: "TMDB 播出平台", 
       functionName: "tmdbDiscoverByNetwork", 
-      cacheDuration: 60, 
+      cacheDuration: 21600, 
       params: [ 
         { name: "with_networks", title: "播出平台", type: "enumeration", value: "", enumOptions: [
           { title: "全部平台", value: "" },
@@ -80,7 +80,7 @@ var WidgetMetadata = {
     { 
       title: "TMDB 出品公司", 
       functionName: "tmdbDiscoverByCompany", 
-      cacheDuration: 60, 
+      cacheDuration: 21600, 
       params: [ 
         { name: "with_companies", title: "出品公司", type: "enumeration", value: "420", enumOptions: [
           { title: "漫威", value: "420" },         
@@ -181,8 +181,8 @@ async function formatItemsWithGenres(items, mediaType) {
         id: i.id.toString(),
         type: "tmdb",
         mediaType: keyType,
-        title,
-        releaseDate: releaseDateFinal,
+        title,  // 标题保持原样，不带类型
+        releaseDate: releaseDateFinal,  // 年份旁显示类型
         posterPath: IMAGE + "w500" + i.poster_path,
         backdropPath: i.backdrop_path ? IMAGE + "w1280" + i.backdrop_path : undefined,
         rating: i.vote_average,
