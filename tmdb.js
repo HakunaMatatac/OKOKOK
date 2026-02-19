@@ -8,7 +8,7 @@ var WidgetMetadata = {
   title: "TMDB资源模块",
   description: "趋势、热榜、平台一站式的资源模块",
   author: "白馆长",
-  version: "0.0.6",
+  version: "0.0.5",
   requiredVersion: "0.0.1",
 
   modules: [
@@ -193,8 +193,15 @@ async function tmdbTopRated(params) {
   return formatItems(items, type); 
 }
 
+// =============================
+// 播出平台模块：可扩展屏蔽国家
+// =============================
 async function tmdbDiscoverByNetwork(params) { 
-  params.without_origin_country = "IN";
+  // 可扩展屏蔽国家列表
+  const blockCountries = ["IN"]; // 以后想屏蔽更多国家可以在数组里添加
+  if (blockCountries.length > 0) {
+    params.without_origin_country = blockCountries.join(",");
+  }
 
   const items = await fetchTMDB("/discover/tv", params); 
   return formatItems(items, "tv"); 
