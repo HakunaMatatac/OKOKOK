@@ -10512,7 +10512,7 @@ WidgetMetadata = {
     description: "通用弹幕支持国内主流视频平台",
     author: "HakunaMatata",
     version: widgetVersion,
-    site: "https://github.com/baranwang",
+    site: "https://github.com",
     requiredVersion: "0.0.2",
     globalParams: [
         {
@@ -10772,4 +10772,5 @@ searchDanmu = (e)=>src_async_to_generator(function*() {
             count: o.length
         };
     })();
+
 
