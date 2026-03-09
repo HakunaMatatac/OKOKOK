@@ -1,14 +1,13 @@
 WidgetMetadata = {
-  id: "danmu_api_Max_binfa",
-  title: "并发弹幕",
-  version: "1.2.7", // 并发测试版：基于稳定的1.2.6，仅将请求方式改回并发，测试引擎极限
+  id: "danmu_api",
+  title: "多源弹幕API",
+  version: "0.0.5",
   requiredVersion: "0.0.2",
-  site: "https://t.me/MakkaPakkaOvO",
-  description: "并发搜索多api、繁简互转、数量限制、关键词屏蔽、颜色重写",
-  author: "𝙈𝙖𝙠𝙠𝙖𝙋𝙖𝙠𝙠𝙖",
+  description: "多来源的繁简互换弹幕api",
+  author: "Hakuna Matata",
   
   globalParams: [
-      { name: "server", title: "源1 (必填)", type: "input", value: "请填入你的弹幕api" },
+      { name: "server1", title: "源1", type: "input" },
       { name: "server2", title: "源2", type: "input" },
       { name: "server3", title: "源3", type: "input" },
       { 
