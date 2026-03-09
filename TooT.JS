@@ -1,13 +1,13 @@
 WidgetMetadata = {
-  id: "danmu_api",
+  id: "danmu_api_Max_binfa",
   title: "多源弹幕API",
-  version: "0.0.5",
+  version: "0.0.1",
   requiredVersion: "0.0.2",
-  description: "多来源的繁简互换弹幕api",
+  description: "并发搜索繁简互换的弹幕api",
   author: "Hakuna Matata",
   
   globalParams: [
-      { name: "server1", title: "源1", type: "input" },
+      { name: "server", title: "源1 (必填)", type: "input", value: "请填入你的弹幕api" },
       { name: "server2", title: "源2", type: "input" },
       { name: "server3", title: "源3", type: "input" },
       { 
