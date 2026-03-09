@@ -10505,13 +10505,14 @@ function src_object_spread_props(e, t) {
         Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
     }), e;
 }
-let widgetVersion = "0.0.5";
+let widgetVersion = "0.15.1";
 WidgetMetadata = {
     id: "baranwang.danmu.universe",
-    title: "多平台弹幕",
-    description: "通用弹幕支持国内主流视频平台",
-    author: "HakunaMatata",
+    title: "通用弹幕",
+    description: "通用弹幕插件，支持腾讯、优酷、爱奇艺、哔哩哔哩、人人视频等平台",
+    author: "Baran",
     version: widgetVersion,
+    site: "https://github.com/baranwang/forward-widgets/tree/main/apps/danmu-universe",
     requiredVersion: "0.0.2",
     globalParams: [
         {
