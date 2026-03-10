@@ -1,7 +1,7 @@
 WidgetMetadata = {
   id: "DuoYuan_danmu_api",
   title: "多源弹幕",
-  version: "0.0.5",
+  version: "0.9.9",
   requiredVersion: "0.0.2",
   description: "并发搜索、繁简互换的弹幕模块",
   author: "Hakuna Matata",
