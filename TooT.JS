@@ -1,5 +1,5 @@
 WidgetMetadata = {
-  id: "danmu_api_Max_binfa",
+  id: "danmu_api_ZiDong",
   title: "自动弹幕模块",
   version: "0.0.5",
   requiredVersion: "0.0.2",
